@@ -1,0 +1,129 @@
+---
+title: "Homework3"
+output: html_document
+---
+
+```{r}
+library(dummies)
+```
+
+# Name: Lulin Zheng SID 3033164305
+# Set work direction
+```{r}
+setwd("/Users/zhenglulin/Documents/study/MLAEP/2018Fall/PH245/Homework3")
+rm (list = ls())
+```
+
+
+# Read data
+```{r}
+data <- read.table(file = "Data-HW3-CHeartDisease.dat", header = FALSE, quote = "", sep = ",")
+```
+
+# Create a vector of columns names
+```{r}
+col_names = c ("age", "gender", "chestpain", "bldpressure", "chol",
+"bldsugar", "electrocardio", "heartrate", "angina", "STdepression",
+"STslope", "vessel", "thal", "desease")
+data = read.table("Data-HW3-CHeartDisease.dat", col.names = col_names, sep = ",", header = FALSE, fill = TRUE)
+```
+
+
+# Find and remove the samples with missing values
+```{r}
+id.ms <- which(data[,12] == '?' | data[,13] == '?')
+data2 <- data[-id.ms,]
+```
+
+# (a) View dataset, which predictors are numerical, which are categorical, and which are unclear?
+```{r}
+head (data2)
+```
+Based on the data head and data description from document 'hmwk3', we know that the response 'Desease' is categorical with presence (value 1,2,3,4) and absence (value 0), and below predictors are also categorical:
+[2]. gender (male and female), but we are not sure whether the female is 1 or male is 1,
+[3]. chest pain type (1-4),
+[6]. fasting blood sugar (1=true,0=false),
+[9] exercise induced angina (1=yes; 0=no),
+
+Numerical predictors:
+[1]. age
+[4]. reast blood pressure
+[5]. serum cholestoral
+[8]. maximum heart rate revceived
+[10]. ST depression
+[12]. number of major vessel
+
+Unclear predictors:
+[7]. resting electronical results
+[11]. The slope of the peak exercise
+[13]. Thal
+
+
+# (a) How many have heart deases and how many have none?
+```{r}
+data3 <- data2
+data3$desease[data3$desease > 0] <- 1 # 
+# Convert Y into binary data. All the samples with Y = 1,2,3 would be categorized into 1 (with desease), samples with Y = 0 would be categorized into 0 (without desease).
+table(data3$desease)
+```
+From the table we could know that there are 160 patients have none while 137 patients have heart desease.
+
+# Convert the columns 12 and 13 to type numeric
+```{r}
+data3[,12] <- as.numeric(data3[,12]) - 1  # sowhow R plus 1 automatically so I jsut minus 1 to correct it
+data3[,13] <- as.numeric(data3[,13]) + 4  # sowhow R minus 4 automatically so I jsut plus 4 to correct it
+table(data3$thal)
+table(data2$thal)
+table(data3$vessel)
+table(data2$vessel)
+```
+
+# Correct the thal data again by applied minus 2 to the data = 5
+```{r}
+data3$thal[data3$thal == 5] <- 3
+table(data3$thal)
+```
+
+
+# see the head to make sure I use the right correction (before as.numeric)
+```{r}
+head(data2)
+```
+
+
+# see the head to make sure I use the right correction (after as.numeric)
+```{r}
+head(data3)
+```
+
+# (b) Fit a logistic regression model with the binary of presence / absence of heart desease. Summary the logistic regression fit.
+```{r}
+model = glm( desease ~ age + gender + chestpain + bldpressure + chol + bldsugar + electrocardio + heartrate + angina + STdepression + STslope + vessel + thal, family = "binomial", data = data3)
+summary(model)
+```
+
+# (c) Create dummy variables for categorical variable [3] and variable [13], refit the logistic regression model and presetn the summary of the logistic fit.
+```{r}
+data3$chestpain = factor(data3$chestpain, levels = c ("1","2","3","4"))
+chestpaindummy <- dummy("chestpain",data3)
+data3$thal = factor(data3$thal, levels = c ("3","6","7"))
+thaldummy <- dummy("thal",data3)
+model2 = glm( desease ~ age + gender + chestpaindummy[,2:4] + bldpressure + chol + bldsugar + electrocardio + heartrate + angina + STdepression + STslope + vessel + thaldummy[,2:3], family = "binomial", data = data3)
+summary(model2)
+```
+
+# (d) Interpret the coefcient estimate in front of the predictor [5] serum cholestoral. If one wishes to test the null hypothesis that this coefcient equals zero, what is the p-value of this test? If the signifcance level is set at 0.05, what is your conclusion of this hypothesis test?
+The coeffcient of predictor [5] serum cholestoral is 0.004930. In the logistic regression model, it means that with one unit increase of preditor [5] serum cholestoral, the odds of having heart deases would be e^0.00493 = 1.004942 times. It also means that the odds of having heart deases would increase by 0.4942% with one unit increase of preditor [5]. The p value of predictor [5] is 0.211306 if we want to test the null hypothesis that this coeffcient equals zero. If the significance level is 0.05, we accept the null hyphothesis and conclude that the coeffcient of predictor [5] equals zero.
+
+
+# (e) Based on the logistic regression from (c), interpret the coeffcient estimate in front of the predictor [3] chest pain type 4. If one wishes to test the null hypothesis that this coeffcient equals zero, what is the p-value of this test? If the signifcance level is set at 0.05, what is your conclusion of this hypothesis test?
+The coeffcient estimate in front of the predictor [3] chest pain type 4 is 2.006802. In the logistic regression model, it means that the odds of having heart desease with chestpain 4 is e^2.006802 = 7.44 times than the odds of having heart desease with chest pain 1. The p value of predictor [3] type 4 is 0.002105 if we want to test the null hypothesis that this coeffcient equals zero. If the significance level is 0.05, we reject the null hyphothesis and conclude that the coeffcient not predictor [3] chest pain type 4 doesn't equals zero.
+
+# (f) Based on regression medol from (c), classify the 297 patients into the presence class or absence class, using the cutoff probability 0.5. What is the misclassifcation rate for this logistic regression fit?
+```{r}
+n = nrow(data3)
+yb.hat = rep(0,n)
+yb.hat[fitted(model2) > 0.5] = 1
+sum(data3$desease != yb.hat) / length(data3$desease)
+```
+The misclassification rate of the logistic regression model from (c) is 0.138. 
