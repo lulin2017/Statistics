@@ -1,0 +1,118 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+PH 245 
+Assignment 2
+SID # 3033164305 Lulin Zheng
+---
+```{r}
+install.packages("glmnet")
+install.packages("ElemStatLearn")
+```
+```{r}
+library(glmnet)
+library(ElemStatLearn)
+```
+
+
+Set working directory
+```{r}
+setwd("/Users/zhenglulin/Documents/study/MLAEP/2018Fall/PH245/Homework2")
+rm(list=ls())
+```
+
+Load data
+```{r}
+bodyfat = read.table("Data-HW2-Bodyfat.txt", sep = "", header = FALSE, fill = TRUE)
+```
+
+Create a vector of columns names
+```{r}
+col_names = c(
+  'Case_Number','Fat_per_Brozek','Fat_per_Siri','Density','Age','Weight','Height','Adiposity','Fat Free Weight','Neck_cir','Chest_cir','Abdomen_cir','Hip_cir','Thigh_cir','Knee_cir','Ankle_cir','biceps_cir','Forearm_cir','Wrist_cir'
+  )
+```
+
+```{r}
+bodyfat = read.table("Data-HW2-Bodyfat.txt", col.names = col_names, sep = "", header = FALSE, fill = TRUE)
+```
+
+Remove Ourliers
+```{r}
+ids = c(seq(1,nrow(bodyfat))[bodyfat[,6]>300],seq(1,nrow(bodyfat))[bodyfat[,7]<40])
+bodyfat2 = bodyfat[-ids,]
+```
+
+(a) Fit a linear regression model with percent body fat derived from Siri's equation as a response. Age, weight, height and ten body circumference measurement as a predictors.
+```{r}
+model1 = lm(Fat_per_Siri ~ Age + Weight + Height + Neck_cir + Chest_cir + Abdomen_cir + Hip_cir + Thigh_cir + Knee_cir + Ankle_cir + biceps_cir + Forearm_cir + Wrist_cir, data = bodyfat2)
+summary (model1)
+```
+
+(b) The null hyphothesis: the coefficient of Age equals zero, that means the p-value of the test for Age is higher than significace level. If the significance level is 0.05. The Pr of Age coefficient is 0.02389 < 0.05. So there is difference with the Age in the linear model and without the age coefficient in the linear model. So we reject null hypothesis. In the above result and conclude that Age coefficient doesn't equal zero.
+
+(c) The null hyphothesis: the coefficient of Abdomen equals zero, that means the p-value of the test for Abdomen is higher than significace level. If the significance level is 0.05. The Pr of Abdomen coefficient is 2e-16 < 0.05. So there is difference with the Abdomen in the linear model and without the Abdomen coefficient in the linear model. So we reject null hypothesis. In the above result and conclude that Abdomen coefficient doesn't equal zero.
+
+(d) Draw a residual plot, with the fitted values on the x-axis, and the residuals on the y-axis. Through the below residual plot, we could conclude that the plot doesn't vialate the key assumptions of the linear model: a) mean function is lenier, b) variance is constant, c) response distribution is normal. So linear model is suitable to this data.
+```{r}
+plot(residuals(model1) ~ fitted(model1),
+     xlab = "Fitted Values", ylab = "Residuals")
+abline(h = 0, col = "grey", lwd = 2)
+```
+
+```{r}
+plot(residuals(model2) ~ fitted(model),
+     xlab = "Fitted Values", ylab = "Residuals")
+abline(h = 0, col = "grey", lwd = 2)
+```
+
+
+
+(e) Compare the model fitted with age, weight, height and the ten body circumference (model1) to the model with only age, weight, and height (mdoel2). Based on (e) and (a), we could notice that ajusted R square of model1 is 0.7366, which means model1 could represent 73.66% samples in bodyfat2 dataset. R square of model2 is 0.5787, which means model2 could represent 57.87% samples in bodyfat2. In model1, the significant factors are: Age, Abdomen_cir, and Wrist_cir. In the model 2, the significant factors are: Age, Weight, and Height. 
+```{r}
+model2 = lm(Fat_per_Siri ~ Age + Weight + Height, data = bodyfat2)
+summary (model2)
+```
+
+
+(f) Test the null hypothesis that the reduced model is preferred. Through below comparison, we know that the null hyphosis of anova is there is no difference between model1 and model2 if Pr is higher than 0.05. But the result shows that Pr is 2.2e-16 <0.05. So we could concludes that there is significant difference between model1 and model2. Reduced model is not preferred.
+```{r}
+anova(model1,model2)
+```
+
+(g) Draw a scatter plot of ten body circumference measurement. We can see from the plot that chest_cir and abdomen_cir has positive correlationship. Their plot is close to linear thin line. The person with higher chest_cir usually has highter abdomen_cir. The slope of the plot indicates how much chest_cir might increase when abdomen_cir increase. For example, the slope in plot between chest_cir (Y axis) and abdomen (X axis) is bigger than the plot between ankle_cir (Y axis) and abdomen_cir (X axis). That means chest_cir increase more than ankle_cir with the same amount of abdomen_cir.
+```{r}
+neck_cir <- bodyfat2[,10]
+chest_cir <- bodyfat2[,11]
+abdomen_cir <- bodyfat2[,12]
+hip_cir <- bodyfat2[,13]
+thigh_cir <- bodyfat2[,14]
+knee_cir <- bodyfat2[,15]
+ankle_cir <- bodyfat2[,16]
+biceps_cir <- bodyfat2[,17]
+forearm_cir <- bodyfat2[,18]
+wrist_cir <- bodyfat2[,19]
+pairs(~neck_cir + chest_cir + abdomen_cir + hip_cir + thigh_cir + knee_cir + ankle_cir + biceps_cir + forearm_cir + wrist_cir)
+```
+
+(h) Draw a plot of Lasso solution path for the regression on age, weight, height and the ten body circumference measurements.
+```{r}
+x<-cbind(bodyfat2[,5:7],bodyfat2[,10:19])
+lasso <- glmnet(as.matrix(x),as.matrix(bodyfat2[,2]),family = "gaussian", alpha = 1)
+plot (lasso, "lambda", label = T)
+```
+
+
+
+
+
+
+
+
+
+
