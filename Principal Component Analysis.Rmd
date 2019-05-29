@@ -1,0 +1,182 @@
+---
+title: "Homework4"
+author: 'Lulin Zheng SID #3033164305'
+date: "19/11/2018"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+setwd("/Users/zhenglulin/Documents/study/MLAEP/2018Fall/PH245/Homework4")
+rm(list = ls())
+```
+
+# Read data
+```{r}
+women <- read.delim(file = "Data-HW4-track-women.dat", header = FALSE)
+colnames(women) = c("country","100m", "200m", "400m", "800m", "1500m", "3000m", "marathon")
+```
+
+# 1(a) correlation matrix for women, eigenvalues and eigenvectors of women data
+```{r}
+Xw = as.matrix(women[,2:8]) # make a matrix of track records of women
+stand <- function (v){(v - mean(v)) / sd (v)} # standardize function
+Xws = apply (Xw, 2, stand) # apply standardize to the matrix
+EgValue = eigen(cov(Xws)) # get the eigenvalues from the correlation matrix of Xws
+EgVec = EgValue$vectors # get the eigenvectors, these are the principal component directions
+EgValue # show the eigenvalues of the women track records
+EgVec # show the eigenvtors of the women track records
+```
+
+
+# 1(b) Determine the first two principal components for the standardize preditors. Find out the cumulative percentage of the total sample variance explained by two components
+```{r}
+rownames(EgVec) <- colnames(Xw)
+Uw <- Xws %*% EgVec # get the principal components
+rownames(Uw) <- women$country
+round (cumsum(EgValue$values) / sum(EgValue$values), 3) # find the cumulative proportion of variation explained from each principal component
+round (EgVec[,1:2], 3) # determine the first two principal components
+```
+The matrix shows the first two principal components. The first principal component explains 83% variance of the total sample variance. The total sample variance explained by the two principal components is 91.1%.
+
+# 1(c) Interpret the two principal components
+The first principal component is the linear combination of the 7 measurement: PCA1 = -(0.378 * 100M + 0.383 * 200M + 0.368 * 400M + 0.395 * 800M + 0.389 * 1500M + 0.376 * 3000M + 0.355 * marathon). We could generalize that the first principal component is the everage behavior of 7 measurements of women.
+The second principal component is also the linear combination of the 7 measurement: PCA2 = -0.407 * 100M -0.414 * 200M -0.459 * 400M + 0.161 * 800M + 0.309 * 1500M + 0.423 * 3000M + 0.389 * marathon. We could intepret that the second principal component as the contrast behavior of short distance running (100M, 200M, 400M) and long distance running (800M, 1500M, 3000M, marathon).
+
+# 1(d) Rank the nations based on their socores on the first principal component. Does this ranking correspond with your intuition?
+```{r}
+sort(Uw[,1], decreasing = TRUE)
+```
+From above rack, we know that USA rank as the first country, fllowing by Germany, Russia, China, France, etc.. I think this ranking correspond with my intutition since USA always win the largest amount of gold metals in the Olympic Games. Germany, Russia, China and France also win a lot of gold metals in the Olympic Games too. 
+
+# 1(e) Convert the records of 800M, 1500M, 3000M, and marathin into seconds and compare with the above analysis
+```{r}
+# convert the record into meters per second
+multiply <- function (v){v * 60}
+X1 = apply (Xw[,4:7], 2, multiply)
+X2 = cbind2(Xw[,1:3], X1)
+inver <- function(v){1/v}
+X3 = apply (X2, 2, inver)
+num = c(100, 200, 500, 800, 1500, 3000, 42195)
+X4 = X3 %*% diag(num)
+
+# perform a principal analysis using covariance matrix
+center <- function (v){v - mean(v)}
+Xc = apply (X4, 2, center)
+EgValue2 = eigen(cov(Xc)) # get the eigenvalues from the correlation matrix of X5
+EgVec2 = EgValue2$vectors # get the eigenvectors, these are the principal component directions
+Uw2 = Xc %*% EgVec2
+rownames (EgVec2) <- colnames(Xw)
+round (cumsum(EgValue2$values) / sum(EgValue2$values), 3)
+round (cumsum(EgValue$values) / sum(EgValue$values), 3)
+```
+The acumulative percentage of the first principal component of the second model (top) is 82.5% which is a little be lower than the first principal component of the model 1 (bottom) - 83%. The acumulative percentage of the first two principal components of the second model is 92.8%, which is higher than 91.9% - the first model.
+
+```{r}
+# First two principal component
+round(EgVec2[,1:2], 3)
+# Compare the first two principal component with the previous results
+round (EgVec[,1:2], 3)
+```
+Compare the second model (top) with the first model (bottom), we could conconlude that the first principal component is still the average behavior of the 7 measurements. The second principal component still is the contrast behavior of short distance running (100M, 200M, 400M) and long distance running (800M, 1500M, 3000M, marathon). The overall inerporetation still similar.
+
+But the weight of different predictors of first principal component in the second model is different. In the second model the weight in 400M, 3000M and marathon is higher, which means the first principal component in the second model value more in 400M, 3000M and marathon. 
+
+the weight of different predictors of second principal component in the second model is also different. In the second model the weight (absolute value) in 400M, 3000M and marathon is higher, which means the second principal component in the second model value more in 400M, 3000M and marathon. 
+
+So the intepretation of the coponent is a little be different. The conponent on model 2 values predictors - 400M, 3000M and marathon more.
+
+```{r}
+# rank the nations based on their socores on the first principal component
+rownames(Uw2) <- women$country
+sort(Uw2[,1], decreasing = TRUE)
+```
+The ranking is totally different from the first model. In the second model. USA is the last rank country. Germany, China and Russia also rank in the last, which is opposite to our intuition. So I prefer the first model - correlation based PCA analysis.
+
+# 1(f) repeat the principal component analysis in (a) to (d) for the men
+```{r}
+# read the data
+men <- read.table(file = "Data-HW4-track-men.dat", header = FALSE)
+colnames(men) = c("country","100m", "200m", "400m", "800m", "1500m", "5000m","10000M", "marathon")
+
+Xm = as.matrix(men[,2:9]) # (a) make a matrix of track records of men
+stand <- function (v){(v - mean(v)) / sd (v)} # standardize function
+Xms = apply (Xm, 2, stand) # apply standardize to the matrix
+EgValue3 = eigen(cov(Xms)) # (a) get the eigenvalues from the correlation matrix of Xms
+EgVec3 = EgValue3$vectors # (a) get the eigenvectors, these are the principal component directions
+EgValue3
+EgVec3
+```
+
+
+```{r}
+rownames(EgVec3) <- colnames(Xm)
+Um <- Xms %*% EgVec3 # get the principal components
+rownames(Um) <- men$country
+round (EgVec3[,1:2], 3) # (b) determine the first two principal components
+round (cumsum(EgValue3$values) / sum(EgValue3$values), 3) # (b) find the cumulative proportion of variation explained from each principal component
+```
+(b) The acumulate percentage explained by the first two principal components is 91.8%.
+(c) Intepret the two principal components. Like the model one, the first principal component is the linear combination of the 8 measurement: PCA1 = -(0.332 * 100M + 0.346 * 200M + 0.339 * 400M + 0.353 * 800M + 0.366 * 1500M + 0.370 * 5000M + 0.366 * 10000M + 0.354 * marathon). We could generalize that the first principal component is the everage behavior of 8 measurements of men.
+The second principal component is also the linear combination of the 8 measurement: PCA2 = -0.529 * 100M - 0.470 * 200M -0.345 * 400M + 0.089 * 800M + 0.154 * 1500M + 0.295 * 5000M + 0.334 * 10000M + 0.387 * marathon. We could intepret that the second principal component as the contrast behavior of short distance running (100M, 200M, 400M) and long distance running (800M, 1500M, 5000M, 10000M, marathon).
+
+```{r}
+sort(Um[,1], decreasing = TRUE) # (d) Rank the nationa based on their scores on the first principal component.
+```
+From above rack, we know that USA rank as the first country, fllowing by GreatBritain, Kenya, France, Australia, etc.. I think this ranking correspond with my intutition since men athlete USA always win the largest amount of gold metals in the Olympic Games. Men athlete of GreatBritain, Kenya, France, Australia also win a lot of gold metals in the Olympic Games too. 
+
+Based on the above analysis, we could conclude that most results of the man data are consistant with the woman data.
+
+# 2(a) Using all 7 air-pollution variables to generate the sample covariance matrix.
+```{r}
+airpol = read.table("Data-HW4-pollution.dat", header = FALSE)
+colnames(airpol) = c("wind","sr", "co", "No", "NO2", "O3", "HC")
+Xa = as.matrix(airpol[,1:7])
+center<-function(v){v-mean(v)}
+Xac<-apply(Xa, 2, center)
+cov(Xac)
+```
+
+# 2(b) Obtain the principal component solution to a factor model with m = 1 and m = 2. Find the corresponding commonalities.
+```{r}
+fit.pca2<-eigen(cor(Xac)) # based on the correlation
+v2<-fit.pca2$vectors
+rownames(v2)<-colnames(airpol)
+L1<-v2[,1] * sqrt(fit.pca2$values[1])
+L2<-v2[,2] * sqrt(fit.pca2$values[2])
+round(L1, 3)
+round(L2, 3)
+```
+
+```{r}
+# if m = 1, compute the communality 
+round(L1^2, 3)
+```
+
+```{r}
+# if m = 2, compute the communality 
+round(L1^2 + L2^2, 3)
+```
+
+# 2(c) Find the proportion of variation accounted for by the one-factor model, and the two-factor model.
+```{r}
+# proportion of variation accounted for by the one-factor model
+sum(L1^2) / length(L1)
+```
+
+```{r}
+# proportion of variation accounted for by the two-factor model
+sum(L1^2) / length(L1) + sum(L2^2) / length(L1)
+```
+The proportion of variation accounted for by the one-factor model is 33.38%, while two-factor model is 53.18%.
+
+# 2(d) Perform a varimax rotation of the m = 2 solution, and interpret the factors after the rotation.
+```{r}
+L2_rot = varimax(cbind(L1,L2), normalize = FALSE) # perform a varimax of rotation of the m = 2 solution
+L2_rot
+```
+Intepret the factors after the rotation: We can se the first factor is highly represented by co, No, No2, and HC. They are all highly pollutants cause health problems. So we may call this unhealthy pollutant factors. The second factor is highly represented by solor radiance and O3. O3 absorbs solar radiance to protect us. So we could call this solar radiance factor.
+
+Proportion of variance acounted by the two-factor model:
+After rotation, the proportion variance acounted by the first factor is 30.2%, while the proportion variance acounted by the second factor is 22.9%. The total proportion variance acounted by the two-factor model is 53.2%.
